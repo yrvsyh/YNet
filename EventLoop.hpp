@@ -7,6 +7,7 @@
 #include <mutex>
 #include <signal.h>
 #include <sys/signalfd.h>
+#include <thread>
 #include <vector>
 
 class EventLoop {
@@ -35,4 +36,14 @@ private:
     std::vector<std::function<void()>> pendingTask_;
     std::mutex mutex_;
     std::function<void(int)> signalCallback_ = [](int) {};
+};
+
+class EventThread {
+public:
+    EventThread();
+    EventLoop *getLoop() { return loop_; }
+
+private:
+    EventLoop *loop_;
+    std::unique_ptr<std::thread> thread_;
 };

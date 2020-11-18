@@ -18,6 +18,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
 
     int weakupFd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     assert(weakupFd > 0);
+    spdlog::debug("weakupFd = {}", weakupFd);
     weakupChannel_.reset(new Channel(this, weakupFd));
     weakupChannel_->onRead([this] {
         spdlog::trace("weakuped");
@@ -30,6 +31,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     ::sigprocmask(SIG_BLOCK, &sigmask_, nullptr);
     int sigFd = ::signalfd(-1, &sigmask_, SFD_NONBLOCK | SFD_CLOEXEC);
     assert(sigFd > 0);
+    spdlog::debug("sigFd = {}", sigFd);
     signalChannel_.reset(new Channel(this, sigFd));
     signalChannel_->onRead([this] {
         struct signalfd_siginfo siginfo;
@@ -105,4 +107,14 @@ void EventLoop::quit() {
     if (pEventLoopInThisThread != this) {
         weakup();
     }
+}
+
+EventThread::EventThread() {
+    thread_.reset(new std::thread([&] {
+        sigset_t mask;
+        ::sigfillset(&mask);
+        ::sigprocmask(SIG_BLOCK, &mask, nullptr);
+        loop_ = new EventLoop();
+        loop_->loop();
+    }));
 }
