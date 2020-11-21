@@ -1,8 +1,6 @@
 #include "Channel.hpp"
 #include "EventLoop.hpp"
 
-#include <sys/epoll.h>
-
 Channel::Channel(EventLoop *loop, int fd)
     : loop_(loop), fd_(fd), status_(kNew), events_(0), eventHandling_(false), addedToLoop_(false) {}
 
