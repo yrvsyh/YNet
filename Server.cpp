@@ -33,3 +33,36 @@ void Server::start(int threadNum) {
     listenChannel_->onRead([&] { newConn(); });
     listenChannel_->setEvents(EPOLLIN);
 }
+
+void Server::newConn() {
+    sockaddr addr;
+    std::memset(&addr, 0, sizeof(addr));
+    socklen_t len = sizeof(addr);
+    int fd = ::accept(listenFd_, &addr, &len);
+    if (fd < 0) {
+        spdlog::error("accept error: {}", strerror(errno));
+    } else {
+        setNonBlock(fd);
+        EndPoint peer(&addr);
+        spdlog::debug("peer: {}", peer.toString());
+        auto loop = loop_;
+        if (wokers_.size() > 0) {
+            static int workerIndex = 0;
+            workerIndex %= wokers_.size();
+            loop = wokers_[workerIndex].getLoop();
+            workerIndex++;
+        }
+        auto conn = std::make_shared<Connection>(loop, fd, endpoint_, peer);
+        conns_.insert({peer.toString(), conn});
+        newConnCallback_(conn);
+        conn->onRead(msgCallback_);
+        conn->onState([&](Connection::Ptr conn) { stateChanged(conn); });
+    }
+}
+
+void Server::stateChanged(Connection::Ptr conn) {
+    if (conn->getState() == Connection::Closed) {
+        conns_.erase(conn->getPeer().toString());
+        closeCallback_(conn);
+    }
+}

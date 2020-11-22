@@ -15,6 +15,9 @@ add_executable(YNet           main.cpp
                Epoll.cpp      Epoll.hpp
                Channel.cpp    Channel.hpp
                ThreadPool.cpp ThreadPool.hpp
+               Connection.cpp Connection.hpp
+               Buffer.hpp
+               Server.cpp     Server.hpp
                )
 
 target_link_libraries(YNet pthread spdlog fmt)
