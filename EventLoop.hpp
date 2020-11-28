@@ -41,7 +41,9 @@ private:
 class EventThread {
 public:
     EventThread();
+    // ~EventThread();
     EventLoop *getLoop() { return loop_; }
+    void join() { thread_->join(); }
 
 private:
     EventLoop *loop_;

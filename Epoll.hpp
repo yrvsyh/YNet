@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_set>
 #include <vector>
 
 class Channel;
@@ -18,6 +18,6 @@ private:
 
 private:
     int epfd_;
-    std::map<int, Channel *> channels_;
+    std::unordered_set<Channel *> channels_;
     std::vector<struct epoll_event> events_;
 };

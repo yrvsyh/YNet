@@ -6,20 +6,24 @@
 Connection::Connection(EventLoop *loop, int fd, EndPoint local, EndPoint peer)
     : loop_(loop), state_(Connected), fd_(fd), local_(local), peer_(peer) {
     channel_.reset(new Channel(loop, fd_));
-    channel_->onRead([&] { doRead(); });
-    channel_->onWrite([&] { doWrite(); });
-    channel_->onError([&] {
+    channel_->onRead([this] { doRead(); });
+    channel_->onWrite([this] { doWrite(); });
+    channel_->onError([this] {
+        Ptr This(shared_from_this());
         close();
-        stateCallback_(shared_from_this());
+        closeCallback_(This);
     });
-    channel_->onClose([&] {
-        state_ = Closed;
-        stateCallback_(shared_from_this());
+    channel_->onClose([this] {
+        Ptr This(shared_from_this());
+        close();
+        closeCallback_(This);
     });
-    channel_->setEvents(EPOLLIN);
 }
 
-Connection::~Connection() { channel_->remove(); }
+Connection::~Connection() {
+    // spdlog::error("Connection[{}] Dtor", fd_);
+    channel_->remove();
+}
 
 void Connection::shutdown() {
     state_ = Closed;
@@ -27,8 +31,16 @@ void Connection::shutdown() {
 }
 
 void Connection::close() {
+    channel_->setEvents(0);
     state_ = Closed;
     ::close(fd_);
+}
+
+void Connection::write(const char *data, size_t len) {
+    if (len > 0) {
+        writebuf_.append(data, len);
+        channel_->enableWrite(true);
+    }
 }
 
 void Connection::doRead() {
@@ -40,9 +52,23 @@ void Connection::doRead() {
     } else if (n == 0) {
         Ptr This(shared_from_this());
         close();
-        stateCallback_(This);
+        closeCallback_(This);
     } else {
     }
 }
 
-void Connection::doWrite() {}
+void Connection::doWrite() {
+    if (state_ == Connected && writebuf_.readableBytes() > 0) {
+        spdlog::debug("writing {} bytes data to {}", writebuf_.readableBytes(), peer_.toString());
+        ssize_t n = ::write(fd_, writebuf_.peek(), writebuf_.readableBytes());
+        if (n > 0) {
+            writebuf_.retieve(n);
+            if (writebuf_.readableBytes() == 0) {
+                channel_->enableWrite(false);
+                if (writeCallback_) {
+                    writeCallback_(shared_from_this());
+                }
+            }
+        }
+    }
+}

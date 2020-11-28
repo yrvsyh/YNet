@@ -16,6 +16,14 @@ public:
     ~Channel();
     int fd() { return fd_; }
     Status status() { return status_; }
+    void enableRead(bool enable) {
+        enable ? events_ |= EPOLLIN : events_ &= ~EPOLLIN;
+        update();
+    }
+    void enableWrite(bool enable) {
+        enable ? events_ |= EPOLLOUT : events_ &= ~EPOLLOUT;
+        update();
+    }
     void setEvents(uint32_t events) {
         events_ = events;
         update();
@@ -43,8 +51,8 @@ private:
     bool eventHandling_;
     bool addedToLoop_;
 
-    std::function<void()> readCallback_ = [&] { spdlog::debug("default read callback fd = {}", fd_); };
-    std::function<void()> writeCallback_ = [&] { spdlog::debug("default write callback fd = {}", fd_); };
-    std::function<void()> errorCallback_ = [&] { spdlog::debug("default error callback fd = {}", fd_); };
-    std::function<void()> closeCallback_ = [&] { spdlog::debug("default close callback fd = {}", fd_); };
+    std::function<void()> readCallback_ = [this] { spdlog::debug("default read callback fd = {}", fd_); };
+    std::function<void()> writeCallback_ = [this] { spdlog::debug("default write callback fd = {}", fd_); };
+    std::function<void()> errorCallback_ = [this] { spdlog::debug("default error callback fd = {}", fd_); };
+    std::function<void()> closeCallback_ = [this] { spdlog::debug("default close callback fd = {}", fd_); };
 };

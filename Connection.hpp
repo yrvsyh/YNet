@@ -15,12 +15,15 @@ public:
     ~Connection();
     void shutdown();
     void close();
+    void write(const char *data, size_t len);
     void onRead(std::function<void(const Ptr, Buffer *)> cb) { readCallback_ = cb; }
     void onWrite(std::function<void(const Ptr)> cb) { writeCallback_ = cb; }
-    void onState(std::function<void(const Ptr)> cb) { stateCallback_ = cb; }
+    void onClose(std::function<void(const Ptr)> cb) { closeCallback_ = cb; }
+    void enableRead(bool enable) { channel_->enableRead(enable); }
     EndPoint getLocal() { return local_; }
     EndPoint getPeer() { return peer_; }
     State getState() { return state_; }
+    int getFd() { return fd_; }
 
 private:
     void doRead();
@@ -37,5 +40,5 @@ private:
     Buffer writebuf_;
     std::function<void(const Ptr conn, Buffer *buf)> readCallback_;
     std::function<void(const Ptr conn)> writeCallback_;
-    std::function<void(const Ptr conn)> stateCallback_;
+    std::function<void(const Ptr conn)> closeCallback_;
 };

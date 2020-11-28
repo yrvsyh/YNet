@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "EventLoop.hpp"
 #include "NetUtil.hpp"
 
 #include <cstdlib>
@@ -19,8 +20,19 @@ Server::Server(EventLoop *loop, std::string ip, int port) : loop_(loop), endpoin
     setReuseAddr(listenFd_);
 }
 
+Server::~Server() {
+    for (auto &worker : workers_) {
+        spdlog::debug("quiting worker");
+        worker->getLoop()->quit();
+        worker->join();
+    }
+}
+
 void Server::start(int threadNum) {
-    wokers_.resize(threadNum);
+    workers_.resize(threadNum);
+    for (auto &worker : workers_) {
+        worker.reset(new EventThread());
+    }
     int ret = ::bind(listenFd_, reinterpret_cast<const sockaddr *>(endpoint_.getAddr()), sizeof(sockaddr));
     if (ret < 0) {
         spdlog::critical("bind error");
@@ -30,8 +42,8 @@ void Server::start(int threadNum) {
         spdlog::critical("listen error");
     }
     listenChannel_.reset(new Channel(loop_, listenFd_));
-    listenChannel_->onRead([&] { newConn(); });
-    listenChannel_->setEvents(EPOLLIN);
+    listenChannel_->onRead([this] { newConn(); });
+    listenChannel_->enableRead(true);
 }
 
 void Server::newConn() {
@@ -46,23 +58,23 @@ void Server::newConn() {
         EndPoint peer(&addr);
         spdlog::debug("peer: {}", peer.toString());
         auto loop = loop_;
-        if (wokers_.size() > 0) {
+        if (workers_.size() > 0) {
             static int workerIndex = 0;
-            workerIndex %= wokers_.size();
-            loop = wokers_[workerIndex].getLoop();
+            workerIndex %= workers_.size();
+            loop = workers_[workerIndex]->getLoop();
             workerIndex++;
         }
         auto conn = std::make_shared<Connection>(loop, fd, endpoint_, peer);
-        conns_.insert({peer.toString(), conn});
+        conns_.insert(conn);
         newConnCallback_(conn);
         conn->onRead(msgCallback_);
-        conn->onState([&](Connection::Ptr conn) { stateChanged(conn); });
+        conn->onClose([this](Connection::Ptr conn) { closeConn(conn); });
+        conn->onWrite([](Connection::Ptr conn) { spdlog::debug("write to {} done", conn->getPeer().toString()); });
+        conn->enableRead(true);
     }
 }
 
-void Server::stateChanged(Connection::Ptr conn) {
-    if (conn->getState() == Connection::Closed) {
-        conns_.erase(conn->getPeer().toString());
-        closeCallback_(conn);
-    }
+void Server::closeConn(Connection::Ptr conn) {
+    conns_.erase(conn);
+    closeCallback_(conn);
 }
