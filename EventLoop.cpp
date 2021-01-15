@@ -21,7 +21,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     spdlog::debug("weakupFd = {}", weakupFd);
     weakupChannel_.reset(new Channel(this, weakupFd));
     weakupChannel_->onRead([this] {
-        spdlog::trace("weakuped");
+        spdlog::debug("weakuped");
         uint64_t one = 1;
         ::read(weakupChannel_->fd(), &one, sizeof(one));
     });
@@ -98,7 +98,7 @@ void EventLoop::doPendingTask() {
 
 void EventLoop::weakup() {
     spdlog::debug("weakup loop");
-    uint16_t one = 1;
+    uint64_t one = 1;
     ::write(weakupChannel_->fd(), &one, sizeof(one));
 }
 
@@ -110,11 +110,12 @@ void EventLoop::quit() {
 }
 
 EventThread::EventThread() {
-    thread_.reset(new std::thread([&] {
+    thread_.reset(new std::thread([this] {
         sigset_t mask;
         ::sigfillset(&mask);
         ::sigprocmask(SIG_BLOCK, &mask, nullptr);
         loop_ = new EventLoop();
         loop_->loop();
+        delete loop_;
     }));
 }
