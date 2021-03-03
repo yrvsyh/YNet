@@ -18,6 +18,7 @@ add_executable(YNet           main.cpp
                Connection.cpp Connection.hpp
                Buffer.hpp
                Server.cpp     Server.hpp
+               WebServer.cpp  WebServer.hpp
                )
 
 target_link_libraries(YNet pthread spdlog fmt)
