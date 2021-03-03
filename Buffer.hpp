@@ -16,14 +16,17 @@ public:
     void append(const char *data, size_t len) {
         if (len < writableBytes()) {
             std::memmove(buffer_.data() + end_, data, len);
+            end_ += len;
         } else if (buffer_.size() - end_ + start_ < len) {
             std::memmove(buffer_.data(), buffer_.data() + start_, end_ - start_);
             end_ = end_ - start_;
             start_ = 0;
             std::memmove(buffer_.data() + end_, data, len);
+            end_ += len;
         } else {
             buffer_.resize(buffer_.size() + len);
             std::memmove(buffer_.data() + end_, data, len);
+            end_ += len;
         }
     }
     void retieve(size_t len) {
@@ -45,7 +48,7 @@ public:
         return std::string();
     }
     ssize_t readFd(int fd, int &savedErrno) {
-        char extrabuf[65536];
+        static char extrabuf[65536];
         struct iovec vec[2];
         const size_t writable = writableBytes();
         vec[0].iov_base = buffer_.data() + end_;
