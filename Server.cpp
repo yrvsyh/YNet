@@ -65,7 +65,9 @@ void Server::newConn() {
             workerIndex++;
         }
         auto conn = std::make_shared<Connection>(loop, fd, endpoint_, peer);
+        mutex_.lock();
         conns_.insert(conn);
+        mutex_.unlock();
         newConnCallback_(conn);
         conn->onRead(msgCallback_);
         conn->onClose([this](Connection::Ptr conn) { closeConn(conn); });
@@ -75,6 +77,8 @@ void Server::newConn() {
 }
 
 void Server::closeConn(Connection::Ptr conn) {
+    mutex_.lock();
     conns_.erase(conn);
+    mutex_.unlock();
     closeCallback_(conn);
 }

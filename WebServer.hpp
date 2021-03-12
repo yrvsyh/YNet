@@ -3,6 +3,7 @@
 #include "Server.hpp"
 
 #include <map>
+#include <mutex>
 #include <string>
 
 struct Session {
@@ -35,5 +36,6 @@ private:
     EventLoop *loop_;
     Server server_;
     std::map<Connection *, Session> sessions_;
+    std::mutex mutex_;
     std::string prefix_;
 };

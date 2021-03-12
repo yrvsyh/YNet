@@ -10,10 +10,12 @@
 WebServer::WebServer(EventLoop *loop, std::string ip, int port)
     : loop_(loop), server_(loop_, ip, port), prefix_("../") {
     server_.onConn([this](Connection::Ptr conn) {
+        std::lock_guard<std::mutex> lock(mutex_);
         sessions_.insert({conn.get(), Session()});
     });
     server_.onMsg([this](Connection::Ptr conn, Buffer *buf) { onRequest(conn, buf); });
     server_.onClose([this](Connection::Ptr conn) {
+        std::lock_guard<std::mutex> lock(mutex_);
         sessions_.erase(conn.get());
     });
 }
@@ -101,5 +103,36 @@ void WebServer::replyClient(Connection::Ptr conn) {
         conn->write(session.response.body.c_str(), session.response.body.size());
         spdlog::info("{} {} {}", session.request.method, session.request.url, session.response.msg);
     } else {
+        if (request.url.back() == '/') {
+            request.url.pop_back();
+        }
+        if (request.url.empty()) {
+            request.url = "/index.html";
+        }
+        spdlog::debug("url = {}", request.url);
+        auto path = prefix_ + request.url;
+        spdlog::debug("file path = {}", path);
+        struct stat st;
+        std::string resp_header;
+        size_t length = 0;
+        if (stat(path.c_str(), &st)) {
+            path = prefix_ + "404.html";
+            if (!stat(path.c_str(), &st)) {
+                length = st.st_size;
+            }
+            response.msg = "HTTP/1.1 404 NOT FOUND";
+        } else {
+            length = st.st_size;
+            response.msg = "HTTP/1.1 200 OK";
+        }
+        response.headers = fmt::format("\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n", length);
+        ::write(conn->getFd(), response.msg.c_str(), response.msg.size());
+        ::write(conn->getFd(), response.headers.c_str(), response.headers.size());
+        if (length) {
+            int fd = open(path.c_str(), O_RDONLY);
+            sendfile(conn->getFd(), fd, 0, length);
+            close(fd);
+        }
+        spdlog::info("{} {} {}", session.request.method, session.request.url, session.response.msg);
     }
 }

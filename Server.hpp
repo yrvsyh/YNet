@@ -5,6 +5,7 @@
 #include "EventLoop.hpp"
 
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -28,6 +29,7 @@ private:
     int listenFd_;
     std::unique_ptr<Channel> listenChannel_;
     std::unordered_set<Connection::Ptr> conns_;
+    std::mutex mutex_;
     std::vector<std::unique_ptr<EventThread>> workers_;
     std::function<void(Connection::Ptr, Buffer *)> msgCallback_ = [](Connection::Ptr, Buffer *) {};
     std::function<void(Connection::Ptr)> newConnCallback_ = [](Connection::Ptr) {};
