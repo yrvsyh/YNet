@@ -28,6 +28,7 @@ public:
 private:
     void doRead();
     void doWrite();
+    void doClose();
 
 private:
     EventLoop *loop_;

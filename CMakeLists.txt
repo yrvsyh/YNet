@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 
+add_compile_options("-fsanitize=address")
+link_libraries("-fsanitize=address")
+
 add_definitions(-DSPDLOG_FMT_EXTERNAL)
 add_definitions(-DSPDLOG_COMPILED_LIB)
 

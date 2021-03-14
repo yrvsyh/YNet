@@ -1,4 +1,5 @@
 #include "Connection.hpp"
+#include "EventLoop.hpp"
 
 #include <spdlog/spdlog.h>
 #include <unistd.h>
@@ -8,16 +9,8 @@ Connection::Connection(EventLoop *loop, int fd, EndPoint local, EndPoint peer)
     channel_.reset(new Channel(loop, fd_));
     channel_->onRead([this] { doRead(); });
     channel_->onWrite([this] { doWrite(); });
-    channel_->onError([this] {
-        Ptr This(shared_from_this());
-        close();
-        closeCallback_(This);
-    });
-    channel_->onClose([this] {
-        Ptr This(shared_from_this());
-        close();
-        closeCallback_(This);
-    });
+    channel_->onError([this] { doClose(); });
+    channel_->onClose([this] { doClose(); });
 }
 
 Connection::~Connection() {
@@ -50,9 +43,7 @@ void Connection::doRead() {
         spdlog::debug("read {} bytes data", n);
         readCallback_(shared_from_this(), &readbuf_);
     } else if (n == 0) {
-        Ptr This(shared_from_this());
-        close();
-        closeCallback_(This);
+        doClose();
     } else {
     }
 }
@@ -71,4 +62,10 @@ void Connection::doWrite() {
             }
         }
     }
+}
+
+void Connection::doClose() {
+    Ptr This(shared_from_this());
+    close();
+    loop_->queueInLoop([this, This] { closeCallback_(This); });
 }
