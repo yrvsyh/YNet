@@ -29,7 +29,7 @@ void Epoll::updateChannel(Channel *channel) {
 
 void Epoll::removeChannel(Channel *channel) {
     spdlog::debug("remove channel {}", channel->fd());
-    assert(channels_.find(channel) != channels_.cend());
+    // assert(channels_.find(channel) != channels_.cend());
     if (channel->status() == Channel::kAdded) {
         channels_.erase(channel);
         update(EPOLL_CTL_DEL, channel);
@@ -41,6 +41,8 @@ void Epoll::wait(std::vector<Channel *> &activeChannels, int timeout) {
     auto nfds = ::epoll_wait(epfd_, events_.data(), events_.capacity(), timeout);
     if (nfds > 0) {
         spdlog::trace("{} events happened", nfds);
+        std::vector<Channel *> tmp;
+        tmp.swap(activeChannels);
         activeChannels.reserve(nfds);
         for (int i = 0; i < nfds; i++) {
             auto channel = static_cast<Channel *>(events_[i].data.ptr);

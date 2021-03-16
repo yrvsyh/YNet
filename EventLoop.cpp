@@ -75,6 +75,9 @@ void EventLoop::runInLoop(std::function<void()> func) {
 }
 
 void EventLoop::queueInLoop(std::function<void()> func) {
+    if (pEventLoopInThisThread != this) {
+        weakup();
+    }
     std::lock_guard<std::mutex> lock(mutex_);
     pendingTask_.push_back(func);
 }

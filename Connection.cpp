@@ -15,7 +15,6 @@ Connection::Connection(EventLoop *loop, int fd, EndPoint local, EndPoint peer)
 
 Connection::~Connection() {
     // spdlog::error("Connection[{}] Dtor", fd_);
-    channel_->remove();
 }
 
 void Connection::shutdown() {
@@ -25,6 +24,7 @@ void Connection::shutdown() {
 
 void Connection::close() {
     channel_->setEvents(0);
+    channel_->remove();
     state_ = Closed;
     ::close(fd_);
 }

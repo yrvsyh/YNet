@@ -9,6 +9,7 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 Server::Server(EventLoop *loop, std::string ip, int port) : loop_(loop), endpoint_(ip, port) {
     listenFd_ = ::socket(AF_INET, SOCK_STREAM, 0);
@@ -53,6 +54,9 @@ void Server::newConn() {
     int fd = ::accept(listenFd_, &addr, &len);
     if (fd < 0) {
         spdlog::error("accept error: {}", strerror(errno));
+    } else if (conns_.size() > 1000) {
+        spdlog::error("too many clients");
+        ::close(fd);
     } else {
         setNonBlock(fd);
         EndPoint peer(&addr);
@@ -65,9 +69,9 @@ void Server::newConn() {
             workerIndex++;
         }
         auto conn = std::make_shared<Connection>(loop, fd, endpoint_, peer);
-        mutex_.lock();
+        // mutex_.lock();
         conns_.insert(conn);
-        mutex_.unlock();
+        // mutex_.unlock();
         newConnCallback_(conn);
         conn->onRead(msgCallback_);
         conn->onClose([this](Connection::Ptr conn) { closeConn(conn); });
@@ -77,8 +81,10 @@ void Server::newConn() {
 }
 
 void Server::closeConn(Connection::Ptr conn) {
-    mutex_.lock();
-    conns_.erase(conn);
-    mutex_.unlock();
-    closeCallback_(conn);
+    loop_->runInLoop([this, conn] {
+        // mutex_.lock();
+        conns_.erase(conn);
+        // mutex_.unlock();
+        closeCallback_(conn);
+    });
 }

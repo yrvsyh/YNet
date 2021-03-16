@@ -10,13 +10,15 @@
 WebServer::WebServer(EventLoop *loop, std::string ip, int port)
     : loop_(loop), server_(loop_, ip, port), prefix_("../") {
     server_.onConn([this](Connection::Ptr conn) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        // std::lock_guard<std::mutex> lock(mutex_);
         sessions_.insert({conn.get(), Session()});
+        // spdlog::error(sessions_.size());
     });
     server_.onMsg([this](Connection::Ptr conn, Buffer *buf) { onRequest(conn, buf); });
     server_.onClose([this](Connection::Ptr conn) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        // std::lock_guard<std::mutex> lock(mutex_);
         sessions_.erase(conn.get());
+        // spdlog::error(sessions_.size());
     });
 }
 
