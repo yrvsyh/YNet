@@ -45,6 +45,7 @@ void Connection::doRead() {
     } else if (n == 0) {
         doClose();
     } else {
+        doClose();
     }
 }
 
@@ -65,7 +66,7 @@ void Connection::doWrite() {
 }
 
 void Connection::doClose() {
-    Ptr This(shared_from_this());
+    ConnectionPtr This(shared_from_this());
     close();
     loop_->queueInLoop([this, This] { closeCallback_(This); });
 }

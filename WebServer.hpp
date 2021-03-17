@@ -3,7 +3,6 @@
 #include "Server.hpp"
 
 #include <map>
-#include <mutex>
 #include <string>
 
 struct Session {
@@ -29,13 +28,12 @@ public:
     void setPrefix(std::string prefix) { prefix_ = prefix; }
 
 private:
-    void onRequest(Connection::Ptr conn, Buffer *buf);
-    void replyClient(Connection::Ptr conn);
+    void onRequest(ConnectionPtr conn, Buffer *buf);
+    void replyClient(ConnectionPtr conn);
 
 private:
     EventLoop *loop_;
     Server server_;
-    std::map<Connection *, Session> sessions_;
-    std::mutex mutex_;
+    std::map<ConnectionPtr, Session> sessions_;
     std::string prefix_;
 };

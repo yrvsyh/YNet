@@ -37,7 +37,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
         struct signalfd_siginfo siginfo;
         ::read(signalChannel_->fd(), &siginfo, sizeof(siginfo));
         spdlog::debug("recv signal {}", siginfo.ssi_signo);
-        signalCallback_(siginfo.ssi_signo);
+        signalCb_(siginfo.ssi_signo);
     });
     signalChannel_->setEvents(EPOLLIN);
 }

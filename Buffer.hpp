@@ -48,7 +48,7 @@ public:
         return std::string();
     }
     ssize_t readFd(int fd, int &savedErrno) {
-        static char extrabuf[65536];
+        char extrabuf[65536];
         struct iovec vec[2];
         const size_t writable = writableBytes();
         vec[0].iov_base = buffer_.data() + end_;

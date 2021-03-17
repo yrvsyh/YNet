@@ -17,7 +17,6 @@ Server::Server(EventLoop *loop, std::string ip, int port) : loop_(loop), endpoin
         spdlog::critical("can not create listen socket");
     }
     spdlog::debug("listenFd_ = {}", listenFd_);
-    // setNonBlock(listenFd_);
     setReuseAddr(listenFd_);
 }
 
@@ -69,22 +68,18 @@ void Server::newConn() {
             workerIndex++;
         }
         auto conn = std::make_shared<Connection>(loop, fd, endpoint_, peer);
-        // mutex_.lock();
         conns_.insert(conn);
-        // mutex_.unlock();
-        newConnCallback_(conn);
-        conn->onRead(msgCallback_);
-        conn->onClose([this](Connection::Ptr conn) { closeConn(conn); });
-        conn->onWrite([](Connection::Ptr conn) { spdlog::debug("write to {} done", conn->getPeer().toString()); });
+        connCb_(conn);
+        conn->onRead(readCb_);
+        conn->onClose([this](ConnectionPtr conn) { closeConn(conn); });
+        conn->onWrite([](ConnectionPtr conn) { spdlog::debug("write to {} done", conn->getPeer().toString()); });
         conn->enableRead(true);
     }
 }
 
-void Server::closeConn(Connection::Ptr conn) {
+void Server::closeConn(ConnectionPtr conn) {
     loop_->runInLoop([this, conn] {
-        // mutex_.lock();
         conns_.erase(conn);
-        // mutex_.unlock();
-        closeCallback_(conn);
+        closeCb_(conn);
     });
 }

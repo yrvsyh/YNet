@@ -12,6 +12,8 @@
 
 class EventLoop {
 public:
+    using signalCallback = std::function<void(int)>;
+
     EventLoop();
     ~EventLoop();
     void loop();
@@ -21,7 +23,7 @@ public:
     void doPendingTask();
     void updateChannel(Channel *channel) { epoll_.updateChannel(channel); };
     void removeChannel(Channel *channel) { epoll_.removeChannel(channel); };
-    void onSignal(std::function<void(int)> cb) { signalCallback_ = cb; }
+    void onSignal(signalCallback cb) { signalCb_ = cb; }
     void weakup();
     void quit();
 
@@ -35,13 +37,12 @@ private:
     sigset_t sigmask_;
     std::vector<std::function<void()>> pendingTask_;
     std::mutex mutex_;
-    std::function<void(int)> signalCallback_ = [](int) {};
+    signalCallback signalCb_ = [](int) {};
 };
 
 class EventThread {
 public:
     EventThread();
-    // ~EventThread() { delete loop_; }
     EventLoop *getLoop() { return loop_; }
     void join() { thread_->join(); }
 

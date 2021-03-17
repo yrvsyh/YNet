@@ -9,21 +9,15 @@
 
 WebServer::WebServer(EventLoop *loop, std::string ip, int port)
     : loop_(loop), server_(loop_, ip, port), prefix_("../") {
-    server_.onConn([this](Connection::Ptr conn) {
-        // std::lock_guard<std::mutex> lock(mutex_);
-        sessions_.insert({conn.get(), Session()});
-        // spdlog::error(sessions_.size());
-    });
-    server_.onMsg([this](Connection::Ptr conn, Buffer *buf) { onRequest(conn, buf); });
-    server_.onClose([this](Connection::Ptr conn) {
-        // std::lock_guard<std::mutex> lock(mutex_);
-        sessions_.erase(conn.get());
-        // spdlog::error(sessions_.size());
-    });
+    server_.onConn([this](ConnectionPtr conn) { sessions_.insert({conn, Session()}); });
+    server_.onRead([this](ConnectionPtr conn, Buffer *buf) { onRequest(conn, buf); });
+    server_.onClose([this](ConnectionPtr conn) { sessions_.erase(conn); });
 }
 
-void WebServer::onRequest(Connection::Ptr conn, Buffer *buf) {
-    auto &session = sessions_[conn.get()];
+void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
+    // static const char resp[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nhello
+    // world\n"; conn->write(resp, sizeof(resp));
+    auto &session = sessions_[conn];
     bool haveMoreline = true;
     while (haveMoreline) {
         switch (session.state) {
@@ -90,8 +84,8 @@ void WebServer::onRequest(Connection::Ptr conn, Buffer *buf) {
     }
 }
 
-void WebServer::replyClient(Connection::Ptr conn) {
-    auto &session = sessions_[conn.get()];
+void WebServer::replyClient(ConnectionPtr conn) {
+    auto &session = sessions_[conn];
     auto &request = session.request;
     Session::Response resp;
     std::swap(session.response, resp);
