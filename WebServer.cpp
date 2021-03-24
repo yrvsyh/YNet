@@ -77,6 +77,20 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
             break;
         } break;
         case Session::BODY: {
+            auto readable = buf->readableBytes();
+            if (session.request.body_len <= readable) {
+                readable = session.request.body_len;
+            }
+            session.request.body += std::string(buf->peek(), readable);
+            buf->retieve(readable);
+            session.request.body_len -= readable;
+            if (session.request.body_len == 0) {
+                replyClient(conn);
+                session.state = Session::REQUEST;
+            } else if (session.request.body_len < 0) {
+                spdlog::error("read body error");
+                conn->close();
+            }
         } break;
         default:
             break;
@@ -103,7 +117,7 @@ void WebServer::replyClient(ConnectionPtr conn) {
             request.url.pop_back();
         }
         if (request.url.empty()) {
-            request.url = "/index.html";
+            request.url = "/" + homePage_;
         }
         spdlog::debug("url = {}", request.url);
         auto path = prefix_ + request.url;

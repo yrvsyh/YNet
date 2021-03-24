@@ -26,6 +26,7 @@ public:
     WebServer(EventLoop *loop, std::string ip, int port);
     void start(int threadNum) { server_.start(threadNum); }
     void setPrefix(std::string prefix) { prefix_ = prefix; }
+    void setHomePage(std::string homePage) { homePage_ = homePage; }
 
 private:
     void onRequest(ConnectionPtr conn, Buffer *buf);
@@ -36,4 +37,5 @@ private:
     Server server_;
     std::map<ConnectionPtr, Session> sessions_;
     std::string prefix_;
+    std::string homePage_;
 };
