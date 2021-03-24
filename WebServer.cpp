@@ -15,8 +15,10 @@ WebServer::WebServer(EventLoop *loop, std::string ip, int port)
 }
 
 void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
-    // static const char resp[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nhello
-    // world\n"; conn->write(resp, sizeof(resp));
+    // static const char resp[] =
+    //     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nhello world\n ";
+    // buf->retieve(buf->readableBytes());
+    // conn->write(resp, sizeof(resp));
     auto &session = sessions_[conn];
     bool haveMoreline = true;
     while (haveMoreline) {
@@ -45,7 +47,7 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
                 auto &request = session.request;
                 if (line.size() == 0) {
                     for (auto &header : request.headers) {
-                        spdlog::trace("{}: {}", header.first, header.second);
+                        SPDLOG_TRACE("{}: {}", header.first, header.second);
                     }
                     auto iter = request.headers.find("Content-Length");
                     if (iter != request.headers.end()) {
@@ -119,9 +121,9 @@ void WebServer::replyClient(ConnectionPtr conn) {
         if (request.url.empty()) {
             request.url = "/" + homePage_;
         }
-        spdlog::debug("url = {}", request.url);
+        SPDLOG_DEBUG("url = {}", request.url);
         auto path = prefix_ + request.url;
-        spdlog::debug("file path = {}", path);
+        SPDLOG_DEBUG("file path = {}", path);
         struct stat st;
         std::string resp_header;
         size_t length = 0;

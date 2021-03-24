@@ -15,7 +15,7 @@ Epoll::Epoll() {
 Epoll::~Epoll() { ::close(epfd_); }
 
 void Epoll::updateChannel(Channel *channel) {
-    spdlog::debug("update channel {}", channel->fd());
+    SPDLOG_DEBUG("update channel {}", channel->fd());
     if (channel->status() == Channel::kNew) {
         // assert(channels_.find(channel->fd()) == channels_.cend());
         channels_.insert(channel);
@@ -28,7 +28,7 @@ void Epoll::updateChannel(Channel *channel) {
 }
 
 void Epoll::removeChannel(Channel *channel) {
-    spdlog::debug("remove channel {}", channel->fd());
+    SPDLOG_DEBUG("remove channel {}", channel->fd());
     // assert(channels_.find(channel) != channels_.cend());
     if (channel->status() == Channel::kAdded) {
         channels_.erase(channel);
@@ -40,7 +40,7 @@ void Epoll::removeChannel(Channel *channel) {
 void Epoll::wait(std::vector<Channel *> &activeChannels, int timeout) {
     auto nfds = ::epoll_wait(epfd_, events_.data(), events_.capacity(), timeout);
     if (nfds > 0) {
-        spdlog::trace("{} events happened", nfds);
+        SPDLOG_TRACE("{} events happened", nfds);
         std::vector<Channel *> tmp;
         tmp.swap(activeChannels);
         activeChannels.reserve(nfds);
@@ -53,7 +53,7 @@ void Epoll::wait(std::vector<Channel *> &activeChannels, int timeout) {
             events_.resize(events_.size() * 2);
         }
     } else if (nfds == 0) {
-        spdlog::trace("nothing happened in {} millisecond", timeout);
+        SPDLOG_TRACE("nothing happened in {} millisecond", timeout);
     } else {
         spdlog::critical("epoll_wait error");
         exit(errno);

@@ -17,13 +17,13 @@ Server::Server(EventLoop *loop, std::string ip, int port) : loop_(loop), endpoin
         spdlog::critical("can not create listen socket");
         exit(errno);
     }
-    spdlog::debug("listenFd_ = {}", listenFd_);
+    SPDLOG_DEBUG("listenFd_ = {}", listenFd_);
     setReuseAddr(listenFd_);
 }
 
 Server::~Server() {
     for (auto &worker : workers_) {
-        spdlog::debug("quiting worker");
+        SPDLOG_DEBUG("quiting worker");
         worker->getLoop()->quit();
         worker->join();
     }
@@ -64,7 +64,7 @@ void Server::newConn() {
     } else {
         setNonBlock(fd);
         EndPoint peer(&addr);
-        spdlog::debug("peer: {}", peer.toString());
+        SPDLOG_DEBUG("peer: {}", peer.toString());
         auto loop = loop_;
         if (workerNums_ > 0) {
             static int workerIndex = 0;
@@ -77,7 +77,7 @@ void Server::newConn() {
         connCb_(conn);
         conn->onRead(readCb_);
         conn->onClose([this](ConnectionPtr conn) { closeConn(conn); });
-        conn->onWrite([](ConnectionPtr conn) { spdlog::debug("write to {} done", conn->getPeer().toString()); });
+        conn->onWrite([](ConnectionPtr conn) { SPDLOG_DEBUG("write to {} done", conn->getPeer().toString()); });
         conn->enableRead(true);
     }
 }

@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 
 void ThreadPool::start(int threadNum) {
-    spdlog::debug("starting thread poll");
+    SPDLOG_DEBUG("starting thread poll");
     running_ = true;
     while (threadNum--) {
         threads_.emplace_back([this] {
@@ -19,14 +19,14 @@ void ThreadPool::start(int threadNum) {
 }
 
 void ThreadPool::stop() {
-    spdlog::debug("stoping thread poll");
+    SPDLOG_DEBUG("stoping thread poll");
     running_ = false;
     empty_.notify_all();
     for (auto &thread : threads_) {
         thread.join();
     }
     threads_.clear();
-    spdlog::debug("thread poll stoped");
+    SPDLOG_DEBUG("thread poll stoped");
 }
 
 void ThreadPool::run(const std::function<void()> &task) { run(std::move(task)); }
@@ -42,7 +42,7 @@ std::function<void()> ThreadPool::getTask() {
     while (running_ && tasks_.empty()) {
         empty_.wait(lock);
     }
-    spdlog::trace("get one task");
+    SPDLOG_TRACE("get one task");
     auto task = tasks_.front();
     tasks_.pop_front();
     return task;

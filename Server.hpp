@@ -5,7 +5,7 @@
 #include "EventLoop.hpp"
 
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <vector>
 
 class Server {
@@ -29,7 +29,7 @@ private:
     EndPoint endpoint_;
     int listenFd_;
     std::unique_ptr<Channel> listenChannel_;
-    std::set<ConnectionPtr> conns_;
+    std::unordered_set<ConnectionPtr> conns_;
     uint64_t maxConn_;
     std::vector<std::unique_ptr<EventThread>> workers_;
     int workerNums_;

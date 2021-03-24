@@ -65,7 +65,7 @@ public:
             end_ = buffer_.size();
             append(extrabuf, n - writable);
         }
-        spdlog::trace("start_ = {}, end_ = {}", start_, end_);
+        SPDLOG_TRACE("start_ = {}, end_ = {}", start_, end_);
         return n;
     }
 

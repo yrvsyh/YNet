@@ -2,7 +2,7 @@
 
 #include "Server.hpp"
 
-#include <map>
+#include <unordered_map>
 #include <string>
 
 struct Session {
@@ -35,7 +35,7 @@ private:
 private:
     EventLoop *loop_;
     Server server_;
-    std::map<ConnectionPtr, Session> sessions_;
+    std::unordered_map<ConnectionPtr, Session> sessions_;
     std::string prefix_;
     std::string homePage_;
 };

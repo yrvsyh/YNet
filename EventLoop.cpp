@@ -24,10 +24,10 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
 
     int weakupFd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     assert(weakupFd > 0);
-    spdlog::debug("weakupFd = {}", weakupFd);
+    SPDLOG_DEBUG("weakupFd = {}", weakupFd);
     weakupChannel_.reset(new Channel(this, weakupFd));
     weakupChannel_->onRead([this] {
-        spdlog::debug("weakuped");
+        SPDLOG_DEBUG("weakuped");
         uint64_t one = 1;
         ::read(weakupChannel_->fd(), &one, sizeof(one));
     });
@@ -37,19 +37,19 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     ::sigprocmask(SIG_BLOCK, &sigmask_, nullptr);
     int sigFd = ::signalfd(-1, &sigmask_, SFD_NONBLOCK | SFD_CLOEXEC);
     assert(sigFd > 0);
-    spdlog::debug("sigFd = {}", sigFd);
+    SPDLOG_DEBUG("sigFd = {}", sigFd);
     signalChannel_.reset(new Channel(this, sigFd));
     signalChannel_->onRead([this] {
         struct signalfd_siginfo siginfo;
         ::read(signalChannel_->fd(), &siginfo, sizeof(siginfo));
-        spdlog::debug("recv signal {}", siginfo.ssi_signo);
+        SPDLOG_DEBUG("recv signal {}", siginfo.ssi_signo);
         signalCb_(siginfo.ssi_signo);
     });
     signalChannel_->enableRead(true);
 
     int timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
     assert(timerfd > 0);
-    spdlog::debug("timerfd = {}", timerfd);
+    SPDLOG_DEBUG("timerfd = {}", timerfd);
     timerChannel_.reset(new Channel(this, timerfd));
     timerChannel_->onRead([this] { onTimer(); });
     timerChannel_->enableRead(true);
@@ -181,7 +181,7 @@ void EventLoop::doPendingTask() {
 }
 
 void EventLoop::weakup() {
-    spdlog::debug("weakup loop");
+    SPDLOG_DEBUG("weakup loop");
     uint64_t one = 1;
     ::write(weakupChannel_->fd(), &one, sizeof(one));
 }

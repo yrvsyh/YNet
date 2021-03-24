@@ -40,7 +40,7 @@ void Connection::doRead() {
     int savedErrno;
     ssize_t n = readbuf_.readFd(fd_, savedErrno);
     if (n > 0) {
-        spdlog::debug("read {} bytes data", n);
+        SPDLOG_DEBUG("read {} bytes data", n);
         readCallback_(shared_from_this(), &readbuf_);
     } else if (n == 0) {
         doClose();
@@ -51,7 +51,7 @@ void Connection::doRead() {
 
 void Connection::doWrite() {
     if (state_ == Connected && writebuf_.readableBytes() > 0) {
-        spdlog::debug("writing {} bytes data to {}", writebuf_.readableBytes(), peer_.toString());
+        SPDLOG_DEBUG("writing {} bytes data to {}", writebuf_.readableBytes(), peer_.toString());
         ssize_t n = ::write(fd_, writebuf_.peek(), writebuf_.readableBytes());
         if (n > 0) {
             writebuf_.retieve(n);

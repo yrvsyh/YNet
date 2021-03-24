@@ -52,8 +52,8 @@ private:
     bool eventHandling_;
     bool addedToLoop_;
 
-    Callback readCb_ = [this] { spdlog::debug("default read callback fd = {}", fd_); };
-    Callback writeCb_ = [this] { spdlog::debug("default write callback fd = {}", fd_); };
-    Callback errorCb_ = [this] { spdlog::debug("default error callback fd = {}", fd_); };
-    Callback closeCb_ = [this] { spdlog::debug("default close callback fd = {}", fd_); };
+    Callback readCb_ = [this] { SPDLOG_DEBUG("default read callback fd = {}", fd_); };
+    Callback writeCb_ = [this] { SPDLOG_DEBUG("default write callback fd = {}", fd_); };
+    Callback errorCb_ = [this] { SPDLOG_DEBUG("default error callback fd = {}", fd_); };
+    Callback closeCb_ = [this] { SPDLOG_DEBUG("default close callback fd = {}", fd_); };
 };
