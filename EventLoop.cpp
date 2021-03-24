@@ -2,6 +2,9 @@
 #include "Channel.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <ctime>
+#include <errno.h>
 #include <iterator>
 #include <spdlog/spdlog.h>
 #include <sys/epoll.h>
@@ -104,7 +107,32 @@ void EventLoop::addTimer(Timer t, Task &&func) {
     timerMap_.emplace(t, func);
 }
 
+static timespec operator+(const timespec &t1, const timespec &t2) {
+    timespec t;
+    if (1000000000 - t1.tv_nsec <= t2.tv_nsec) {
+        t.tv_sec = t1.tv_sec + t2.tv_sec + 1;
+        t.tv_nsec = t2.tv_nsec - (1000000000 - t1.tv_nsec);
+    } else {
+        t.tv_sec = t1.tv_sec + t2.tv_sec;
+        t.tv_nsec = t1.tv_nsec + t2.tv_nsec;
+    }
+    return t;
+}
+
+Timer::Timer(time_t after, long nsec, time_t every, long everyn) {
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    timespec tmp;
+    tmp.tv_sec = after;
+    tmp.tv_nsec = nsec;
+    its.it_value = now + tmp;
+    its.it_interval.tv_sec = every;
+    its.it_interval.tv_nsec = everyn;
+}
+
 void EventLoop::onTimer() {
+    uint64_t exp = 0;
+    read(timerChannel_->fd(), &exp, sizeof(exp));
     timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     auto end = timerMap_.lower_bound(now);
@@ -114,21 +142,24 @@ void EventLoop::onTimer() {
     for (const auto &task : tasks) {
         auto t = task.first;
         if (t.its.it_interval.tv_sec != 0 || t.its.it_interval.tv_nsec != 0) {
-            t.its.it_value.tv_sec += t.its.it_interval.tv_sec;
-            t.its.it_value.tv_nsec += t.its.it_interval.tv_nsec;
+            t.its.it_value = t.its.it_value + t.its.it_interval;
             timerMap_.emplace(t, task.second);
         }
     }
     for (const auto &task : tasks) {
         task.second();
     }
-    itimerspec itm = {0};
+    itimerspec its = {{0, 0}, {0, 0}};
     if (!timerMap_.empty()) {
-        itm = timerMap_.begin()->first.its;
+        its = timerMap_.begin()->first.its;
     }
-    int ret = timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &itm, nullptr);
+    int ret = timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &its, nullptr);
     if (ret < 0) {
-        spdlog::error("set timer error");
+        spdlog::error("set timer error: {}", strerror(errno));
+        assert(Timer(now) < Timer(its));
+        timerMap_.clear();
+        itimerspec its = {{0, 0}, {0, 0}};
+        timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &its, nullptr);
     }
 }
 

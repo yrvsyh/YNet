@@ -14,26 +14,12 @@
 #include <vector>
 
 struct Timer {
-    Timer() : its{0} {}
-    Timer(time_t after) {
-        timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        its.it_value.tv_sec = now.tv_sec + after;
-        its.it_value.tv_nsec = now.tv_nsec;
-        its.it_interval = {0};
-    }
-    Timer(time_t after, time_t every) {
-        timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        its.it_value.tv_sec = now.tv_sec + after;
-        its.it_value.tv_nsec = now.tv_nsec;
-        its.it_interval.tv_sec = every;
-        its.it_interval.tv_nsec = 0;
-    }
-    Timer(timespec ts) {
+    Timer(time_t after, long nsec = 0, time_t every = 0, long everyn = 0);
+    Timer(timespec ts, timespec interval = {0, 0}) {
         its.it_value = ts;
-        its.it_interval = {0};
+        its.it_interval = interval;
     }
+    Timer(itimerspec its) : its(its) {}
     Timer(const Timer &t) = default;
     bool operator<(const Timer &t) const {
         if (its.it_value.tv_sec < t.its.it_value.tv_sec) {
@@ -59,8 +45,12 @@ public:
     void queueInLoop(Task &&func);
     void addTimer(Timer t, Task &&func);
     void addSignal(int signal);
-    void updateChannel(Channel *channel) { epoll_.updateChannel(channel); };
-    void removeChannel(Channel *channel) { epoll_.removeChannel(channel); };
+    void updateChannel(Channel *channel) {
+        runInLoop([this, channel] { epoll_.updateChannel(channel); });
+    };
+    void removeChannel(Channel *channel) {
+        runInLoop([this, channel] { epoll_.removeChannel(channel); });
+    };
     void onSignal(signalCallback &&cb) { signalCb_ = std::move(cb); }
     void weakup();
     void quit();
