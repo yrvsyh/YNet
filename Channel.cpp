@@ -21,16 +21,16 @@ void Channel::remove() {
 void Channel::handlerEvent() {
     eventHandling_ = true;
     if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
-        closeCallback_();
+        closeCb_();
     }
     if (revents_ & (EPOLLERR)) {
-        errorCallback_();
+        errorCb_();
     }
     if (revents_ & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)) {
-        readCallback_();
+        readCb_();
     }
     if (revents_ & EPOLLOUT) {
-        writeCallback_();
+        writeCb_();
     }
     eventHandling_ = false;
 }

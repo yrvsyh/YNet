@@ -9,6 +9,7 @@ class EventLoop;
 
 class Channel {
 public:
+    using Callback = std::function<void()>;
     enum Status { kNew, kAdded, kDeleted };
 
 public:
@@ -30,10 +31,10 @@ public:
     }
     void handlerEvent();
     void remove();
-    void onRead(std::function<void()> cb) { readCallback_ = std::move(cb); }
-    void onWrite(std::function<void()> cb) { writeCallback_ = std::move(cb); }
-    void onError(std::function<void()> cb) { errorCallback_ = std::move(cb); }
-    void onClose(std::function<void()> cb) { closeCallback_ = std::move(cb); }
+    void onRead(Callback &&cb) { readCb_ = std::move(cb); }
+    void onWrite(Callback &&cb) { writeCb_ = std::move(cb); }
+    void onError(Callback &&cb) { errorCb_ = std::move(cb); }
+    void onClose(Callback &&cb) { closeCb_ = std::move(cb); }
 
 private:
     friend class Epoll;
@@ -51,8 +52,8 @@ private:
     bool eventHandling_;
     bool addedToLoop_;
 
-    std::function<void()> readCallback_ = [this] { spdlog::debug("default read callback fd = {}", fd_); };
-    std::function<void()> writeCallback_ = [this] { spdlog::debug("default write callback fd = {}", fd_); };
-    std::function<void()> errorCallback_ = [this] { spdlog::debug("default error callback fd = {}", fd_); };
-    std::function<void()> closeCallback_ = [this] { spdlog::debug("default close callback fd = {}", fd_); };
+    Callback readCb_ = [this] { spdlog::debug("default read callback fd = {}", fd_); };
+    Callback writeCb_ = [this] { spdlog::debug("default write callback fd = {}", fd_); };
+    Callback errorCb_ = [this] { spdlog::debug("default error callback fd = {}", fd_); };
+    Callback closeCb_ = [this] { spdlog::debug("default close callback fd = {}", fd_); };
 };

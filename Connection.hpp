@@ -10,8 +10,9 @@
 class Connection;
 
 using ConnectionPtr = std::shared_ptr<Connection>;
-using ReadCallback = std::function<void(ConnectionPtr, Buffer *)>;
 using ConnCallback = std::function<void(ConnectionPtr)>;
+using ReadCallback = std::function<void(ConnectionPtr, Buffer *)>;
+using WriteCallback = std::function<void(ConnectionPtr)>;
 using CloseCallback = std::function<void(ConnectionPtr)>;
 
 class Connection : public std::enable_shared_from_this<Connection> {
@@ -22,9 +23,12 @@ public:
     void shutdown();
     void close();
     void write(const char *data, size_t len);
-    void onRead(std::function<void(const ConnectionPtr, Buffer *)> cb) { readCallback_ = cb; }
-    void onWrite(std::function<void(const ConnectionPtr)> cb) { writeCallback_ = cb; }
-    void onClose(std::function<void(const ConnectionPtr)> cb) { closeCallback_ = cb; }
+    void onRead(const ReadCallback &cb) { readCallback_ = cb; }
+    void onWrite(const WriteCallback &cb) { writeCallback_ = cb; }
+    void onClose(const CloseCallback &cb) { closeCallback_ = cb; }
+    void onRead(ReadCallback &&cb) { readCallback_ = std::move(cb); }
+    void onWrite(WriteCallback &&cb) { writeCallback_ = std::move(cb); }
+    void onClose(CloseCallback &&cb) { closeCallback_ = std::move(cb); }
     void enableRead(bool enable) { channel_->enableRead(enable); }
     EndPoint getLocal() { return local_; }
     EndPoint getPeer() { return peer_; }
@@ -45,7 +49,7 @@ private:
     EndPoint peer_;
     Buffer readbuf_;
     Buffer writebuf_;
-    std::function<void(const ConnectionPtr conn, Buffer *buf)> readCallback_;
-    std::function<void(const ConnectionPtr conn)> writeCallback_;
-    std::function<void(const ConnectionPtr conn)> closeCallback_;
+    ReadCallback readCallback_;
+    WriteCallback writeCallback_;
+    CloseCallback closeCallback_;
 };

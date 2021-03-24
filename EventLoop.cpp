@@ -66,20 +66,20 @@ void EventLoop::loop() {
     isLooping_ = false;
 }
 
-void EventLoop::runInLoop(std::function<void()> func) {
+void EventLoop::runInLoop(std::function<void()> &&func) {
     if (pEventLoopInThisThread == this) {
         func();
     } else {
-        queueInLoop(func);
+        queueInLoop(std::move(func));
     }
 }
 
-void EventLoop::queueInLoop(std::function<void()> func) {
+void EventLoop::queueInLoop(std::function<void()> &&func) {
     if (pEventLoopInThisThread != this) {
         weakup();
     }
     std::lock_guard<std::mutex> lock(mutex_);
-    pendingTask_.push_back(func);
+    pendingTask_.push_back(std::move(func));
 }
 
 void EventLoop::addSignal(int signal) {

@@ -17,13 +17,13 @@ public:
     EventLoop();
     ~EventLoop();
     void loop();
-    void runInLoop(std::function<void()> func);
-    void queueInLoop(std::function<void()> func);
+    void runInLoop(std::function<void()> &&func);
+    void queueInLoop(std::function<void()> &&func);
     void addSignal(int signal);
     void doPendingTask();
     void updateChannel(Channel *channel) { epoll_.updateChannel(channel); };
     void removeChannel(Channel *channel) { epoll_.removeChannel(channel); };
-    void onSignal(signalCallback cb) { signalCb_ = cb; }
+    void onSignal(signalCallback &&cb) { signalCb_ = std::move(cb); }
     void weakup();
     void quit();
 
