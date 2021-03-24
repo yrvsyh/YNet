@@ -7,14 +7,14 @@ void ThreadPool::start(int threadNum) {
     spdlog::debug("starting thread poll");
     running_ = true;
     while (threadNum--) {
-        threads_.emplace_back(std::thread([this] {
+        threads_.emplace_back([this] {
             sigset_t mask;
             ::sigfillset(&mask);
             ::sigprocmask(SIG_BLOCK, &mask, nullptr);
             while (running_) {
                 getTask()();
             }
-        }));
+        });
     }
 }
 
@@ -29,10 +29,12 @@ void ThreadPool::stop() {
     spdlog::debug("thread poll stoped");
 }
 
-void ThreadPool::run(std::function<void()> task) {
+void ThreadPool::run(const std::function<void()> &task) { run(std::move(task)); }
+
+void ThreadPool::run(std::function<void()> &&task) {
     std::unique_lock<std::mutex> lock(mutex_);
-    tasks_.emplace_back(task);
-    empty_.notify_all();
+    tasks_.push_back(std::move(task));
+    empty_.notify_one();
 }
 
 std::function<void()> ThreadPool::getTask() {
@@ -40,11 +42,8 @@ std::function<void()> ThreadPool::getTask() {
     while (running_ && tasks_.empty()) {
         empty_.wait(lock);
     }
-    std::function<void()> task = [] {};
-    if (!tasks_.empty()) {
-        spdlog::trace("get one task");
-        task = tasks_.front();
-        tasks_.pop_front();
-    }
+    spdlog::trace("get one task");
+    auto task = tasks_.front();
+    tasks_.pop_front();
     return task;
 }

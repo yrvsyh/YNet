@@ -17,7 +17,8 @@ public:
     }
     void start(int threadNum = 1);
     void stop();
-    void run(std::function<void()> task);
+    void run(const std::function<void()> &task);
+    void run(std::function<void()> &&task);
 
 private:
     std::function<void()> getTask();
