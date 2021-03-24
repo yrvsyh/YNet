@@ -13,7 +13,10 @@
 ### EventLoop类
 
 主事件循环。负责事件的分发，提供了runInLoop函数进行可保证任务在loop线程中调用。
-提供对信号的响应，Ctrl-C时可安全退出。
+
+使用signalfd提供对信号的响应，Ctrl-C时可安全退出。
+
+使用eventfd唤醒阻塞的loop线程。
 
 ### Connection类
 
@@ -21,7 +24,7 @@
 
 ### Buffer类
 
-使用std::vector<char>作为存储单元，内部使用了start、end两个指针控制可读可写的范围。
+使用`std::vector<char>`作为存储单元，内部使用了start、end两个指针控制可读可写的范围。
 
 读数据时在栈上分配较大的空间，配合readv系统调用实现分散读取，高效读取大小数据。
 
@@ -48,5 +51,3 @@ Server类维护一个Connction的set，新连接建立时插入，连接关闭�
 使用wrk测试WebServer(8线程)，1000连接8线程时 QPS 5W以上。
 
 ## TODO
-
-EventLoop添加定时任务

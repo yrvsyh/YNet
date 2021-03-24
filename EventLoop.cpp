@@ -1,11 +1,14 @@
 #include "EventLoop.hpp"
 #include "Channel.hpp"
 
+#include <algorithm>
+#include <iterator>
 #include <spdlog/spdlog.h>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/signal.h>
 #include <sys/signalfd.h>
+#include <sys/timerfd.h>
 #include <unistd.h>
 
 __thread EventLoop *pEventLoopInThisThread = nullptr;
@@ -25,7 +28,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
         uint64_t one = 1;
         ::read(weakupChannel_->fd(), &one, sizeof(one));
     });
-    weakupChannel_->setEvents(EPOLLIN);
+    weakupChannel_->enableRead(true);
 
     ::sigemptyset(&sigmask_);
     ::sigprocmask(SIG_BLOCK, &sigmask_, nullptr);
@@ -39,7 +42,14 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
         spdlog::debug("recv signal {}", siginfo.ssi_signo);
         signalCb_(siginfo.ssi_signo);
     });
-    signalChannel_->setEvents(EPOLLIN);
+    signalChannel_->enableRead(true);
+
+    int timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+    assert(timerfd > 0);
+    spdlog::debug("timerfd = {}", timerfd);
+    timerChannel_.reset(new Channel(this, timerfd));
+    timerChannel_->onRead([this] { onTimer(); });
+    timerChannel_->enableRead(true);
 }
 
 EventLoop::~EventLoop() {
@@ -66,7 +76,7 @@ void EventLoop::loop() {
     isLooping_ = false;
 }
 
-void EventLoop::runInLoop(std::function<void()> &&func) {
+void EventLoop::runInLoop(Task &&func) {
     if (pEventLoopInThisThread == this) {
         func();
     } else {
@@ -74,12 +84,52 @@ void EventLoop::runInLoop(std::function<void()> &&func) {
     }
 }
 
-void EventLoop::queueInLoop(std::function<void()> &&func) {
+void EventLoop::queueInLoop(Task &&func) {
     if (pEventLoopInThisThread != this) {
         weakup();
     }
     std::lock_guard<std::mutex> lock(mutex_);
     pendingTask_.push_back(std::move(func));
+}
+
+void EventLoop::addTimer(Timer t, Task &&func) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto last = timerMap_.begin();
+    if (t < last->first) {
+        int ret = timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &t.its, nullptr);
+        if (ret < 0) {
+            spdlog::error("set timer error");
+        }
+    }
+    timerMap_.emplace(t, func);
+}
+
+void EventLoop::onTimer() {
+    timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    auto end = timerMap_.lower_bound(now);
+    std::vector<std::pair<Timer, Task>> tasks;
+    std::copy(timerMap_.begin(), end, std::back_inserter(tasks));
+    timerMap_.erase(timerMap_.begin(), end);
+    for (const auto &task : tasks) {
+        auto t = task.first;
+        if (t.its.it_interval.tv_sec != 0 || t.its.it_interval.tv_nsec != 0) {
+            t.its.it_value.tv_sec += t.its.it_interval.tv_sec;
+            t.its.it_value.tv_nsec += t.its.it_interval.tv_nsec;
+            timerMap_.emplace(t, task.second);
+        }
+    }
+    for (const auto &task : tasks) {
+        task.second();
+    }
+    itimerspec itm = {0};
+    if (!timerMap_.empty()) {
+        itm = timerMap_.begin()->first.its;
+    }
+    int ret = timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &itm, nullptr);
+    if (ret < 0) {
+        spdlog::error("set timer error");
+    }
 }
 
 void EventLoop::addSignal(int signal) {
