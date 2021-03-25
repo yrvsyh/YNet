@@ -18,6 +18,8 @@
 
 使用eventfd唤醒阻塞的loop线程。
 
+使用timerfd提供定时任务支持。
+
 ### Connection类
 
 将一个Tcp连接包装为一个Connection对象，继承至std::enable_shared_from_this，自动管理该对象的生命期。结合Buffer负责具体的读写任务、连接关闭或错误处理。
@@ -48,6 +50,6 @@ Server类维护一个Connction的set，新连接建立时插入，连接关闭�
 
 ## 性能测试
 
-使用wrk测试WebServer(8线程)，1000连接8线程时 QPS 5W以上。
+使用wrk测试WebServer(8线程)，1000连接8线程时 QPS 10W以上。
 
 ## TODO
