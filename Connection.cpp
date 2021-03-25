@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 Connection::Connection(EventLoop *loop, int fd, EndPoint local, EndPoint peer)
-    : loop_(loop), state_(Connected), fd_(fd), local_(local), peer_(peer) {
+    : loop_(loop), state_(Connected), fd_(fd), local_(local), peer_(peer), ctx_(new AutoContext()) {
     channel_.reset(new Channel(loop, fd_));
     channel_->onRead([this] { doRead(); });
     channel_->onWrite([this] { doWrite(); });

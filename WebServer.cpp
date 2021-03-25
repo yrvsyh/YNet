@@ -9,17 +9,12 @@
 
 WebServer::WebServer(EventLoop *loop, std::string ip, int port)
     : loop_(loop), server_(loop_, ip, port), prefix_("../") {
-    server_.onConn([this](ConnectionPtr conn) { sessions_.insert({conn, Session()}); });
+    server_.onConn([](ConnectionPtr conn) { conn->context().get<Session>(); });
     server_.onRead([this](ConnectionPtr conn, Buffer *buf) { onRequest(conn, buf); });
-    server_.onClose([this](ConnectionPtr conn) { sessions_.erase(conn); });
 }
 
 void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
-    // static const char resp[] =
-    //     "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nhello world\n ";
-    // buf->retieve(buf->readableBytes());
-    // conn->write(resp, sizeof(resp));
-    auto &session = sessions_[conn];
+    auto &session = conn->context().get<Session>();
     bool haveMoreline = true;
     while (haveMoreline) {
         switch (session.state) {
@@ -33,7 +28,9 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
                 std::stringstream sstream(line);
                 sstream << line;
                 sstream >> request.method >> request.url;
-                spdlog::info("{} {} {}", conn->getPeer().toString(), request.method, request.url);
+                if (request.url != "/wrk") {
+                    spdlog::info("{} {} {}", conn->getPeer().toString(), request.method, request.url);
+                }
                 session.state = Session::HEADERS;
                 break;
             }
@@ -67,7 +64,6 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
                 if (pos != line.npos) {
                     std::string key(line, 0, pos);
                     std::string value(line, pos + 2, line.size());
-                    // spdlog::info("{}: {}", key, value);
                     request.headers.insert({key, value});
                 } else {
                     spdlog::error("parse headers error");
@@ -101,7 +97,7 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
 }
 
 void WebServer::replyClient(ConnectionPtr conn) {
-    auto &session = sessions_[conn];
+    auto &session = conn->context().get<Session>();
     auto &request = session.request;
     Session::Response resp;
     std::swap(session.response, resp);
@@ -113,7 +109,6 @@ void WebServer::replyClient(ConnectionPtr conn) {
         conn->write(session.response.msg.c_str(), session.response.msg.size());
         conn->write(session.response.headers.c_str(), session.response.headers.size());
         conn->write(session.response.body.c_str(), session.response.body.size());
-        spdlog::info("{} {} {}", session.request.method, session.request.url, session.response.msg);
     } else {
         if (request.url.back() == '/') {
             request.url.pop_back();
