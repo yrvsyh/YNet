@@ -12,7 +12,7 @@ class Server {
 public:
     Server(EventLoop *loop, std::string ip, int port);
     ~Server();
-    void start(int threadNum, uint64_t maxConn = 1024);
+    void start(int threadNum, int maxConn = 1024);
     void onRead(const ReadCallback &cb) { readCb_ = cb; }
     void onConn(const ConnCallback &cb) { connCb_ = cb; }
     void onClose(const CloseCallback &cb) { closeCb_ = cb; }

@@ -23,7 +23,7 @@ struct Session {
 class WebServer {
 public:
     WebServer(EventLoop *loop, std::string ip, int port);
-    void start(int threadNum) { server_.start(threadNum); }
+    void start(int threadNum, int maxConn) { server_.start(threadNum, maxConn); }
     void setPrefix(std::string prefix) { prefix_ = prefix; }
     void setHomePage(std::string homePage) { homePage_ = homePage; }
 

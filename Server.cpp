@@ -29,7 +29,7 @@ Server::~Server() {
     }
 }
 
-void Server::start(int threadNum, uint64_t maxConn) {
+void Server::start(int threadNum, int maxConn) {
     workerNums_ = threadNum;
     maxConn_ = maxConn;
     workers_.resize(workerNums_);
