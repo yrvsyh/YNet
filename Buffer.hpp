@@ -36,6 +36,9 @@ public:
             start_ = end_ = 0;
         }
     }
+    const char *search(const char *str) {
+        return std::search(peek(), peek() + readableBytes(), str, str + strlen(str));
+    }
     std::string readUntil(const char *str, bool &ok) {
         const char *pos = std::search(peek(), peek() + readableBytes(), str, str + strlen(str));
         if (pos) {

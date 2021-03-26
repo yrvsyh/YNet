@@ -7,14 +7,24 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-WebServer::WebServer(EventLoop *loop, std::string ip, int port)
-    : loop_(loop), server_(loop_, ip, port), prefix_("../") {
-    server_.onConn([](ConnectionPtr conn) { conn->context().get<Session>(); });
+// #define WEB_TEST
+
+WebServer::WebServer(EventLoop *loop, std::string ip, int port) : loop_(loop), server_(loop_, ip, port), prefix_("./") {
     server_.onRead([this](ConnectionPtr conn, Buffer *buf) { onRequest(conn, buf); });
 }
 
 void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
     auto &session = conn->context().get<Session>();
+#ifdef WEB_TEST
+    auto pos = buf->search("\r\n\r\n");
+    if (pos) {
+        buf->retieve(pos - buf->peek() + 1);
+        static const char *resp =
+            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nhello world\n";
+        conn->write(resp, 77);
+    }
+    return;
+#endif
     bool haveMoreline = true;
     while (haveMoreline) {
         switch (session.state) {
