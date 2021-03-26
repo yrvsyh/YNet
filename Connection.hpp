@@ -22,8 +22,7 @@ public:
         virtual ~Context() {}
     };
     ~AutoContext() { delete ctx_; }
-    template <class T>
-    T *get() {
+    template <typename T> T *get() {
         if (!ctx_) {
             ctx_ = new T();
         }
@@ -34,30 +33,7 @@ public:
             return nullptr;
         }
     }
-    template <class T>
-    T *get(const T &t) {
-        if (!ctx_) {
-            ctx_ = new T(t);
-        }
-        if (typeid(T) == typeid(*ctx_)) {
-            return dynamic_cast<T *>(ctx_);
-        } else {
-            spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
-            return nullptr;
-        }
-    }
-    template <class T>
-    T *get(T &&t) {
-        if (!ctx_) {
-            ctx_ = new T(t);
-        }
-        if (typeid(T) == typeid(*ctx_)) {
-            return dynamic_cast<T *>(ctx_);
-        } else {
-            spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
-            return nullptr;
-        }
-    }
+    template <typename T> void set(T &&t) { ctx_ = new T(std::forward<T>(t)); }
 
 private:
     Context *ctx_;
