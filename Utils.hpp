@@ -1,9 +1,21 @@
 #pragma once
 
 #include <arpa/inet.h>
+#include <cerrno>
 #include <cstring>
 #include <fcntl.h>
+#include <spdlog/spdlog.h>
 #include <string>
+#include <sys/stat.h>
+
+namespace spdlog {
+template <typename... Args> inline void critical(bool err, Args... format) {
+    if (err) {
+        spdlog::critical(format...);
+        exit(errno);
+    }
+}
+} // namespace spdlog
 
 class EndPoint {
 public:
@@ -31,12 +43,20 @@ private:
 };
 
 inline void setNonBlock(int fd) {
-    int flags = ::fcntl(fd, F_GETFL, 0);
-    flags |= O_NONBLOCK;
-    ::fcntl(fd, F_SETFL, flags);
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
 inline void setReuseAddr(int fd) {
     int optval = 1;
-    ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, static_cast<socklen_t>(sizeof optval));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, static_cast<socklen_t>(sizeof optval));
+}
+inline bool getFileSize(const char *path, size_t &size) {
+    struct stat st;
+    if (stat(path, &st)) {
+        return false;
+    } else {
+        size = st.st_size;
+        return true;
+    }
 }

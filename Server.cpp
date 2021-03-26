@@ -1,6 +1,6 @@
 #include "Server.hpp"
 #include "EventLoop.hpp"
-#include "NetUtil.hpp"
+#include "Utils.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -13,10 +13,7 @@
 
 Server::Server(EventLoop *loop, std::string ip, int port) : loop_(loop), endpoint_(ip, port) {
     listenFd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (listenFd_ < 0) {
-        spdlog::critical("can not create listen socket");
-        exit(errno);
-    }
+    spdlog::critical(listenFd_ < 0, "can not create listen socket");
     SPDLOG_DEBUG("listenFd_ = {}", listenFd_);
     setReuseAddr(listenFd_);
 }
@@ -37,15 +34,9 @@ void Server::start(int threadNum, int maxConn) {
         worker.reset(new EventThread());
     }
     int ret = ::bind(listenFd_, reinterpret_cast<const sockaddr *>(endpoint_.getAddr()), sizeof(sockaddr));
-    if (ret < 0) {
-        spdlog::critical("bind error");
-        exit(errno);
-    }
+    spdlog::critical(ret < 0, "bind error");
     ret = ::listen(listenFd_, 25);
-    if (ret < 0) {
-        spdlog::critical("listen error");
-        exit(errno);
-    }
+    spdlog::critical(ret < 0, "listen error");
     listenChannel_.reset(new Channel(loop_, listenFd_));
     listenChannel_->onRead([this] { newConn(); });
     listenChannel_->enableRead(true);

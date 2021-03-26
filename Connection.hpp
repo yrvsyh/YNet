@@ -2,11 +2,10 @@
 
 #include "Buffer.hpp"
 #include "Channel.hpp"
-#include "NetUtil.hpp"
+#include "Utils.hpp"
 
 #include <functional>
 #include <memory>
-#include <spdlog/spdlog.h>
 
 class Connection;
 
@@ -26,14 +25,19 @@ public:
         if (!ctx_) {
             ctx_ = new T();
         }
-        if (typeid(T) == typeid(*ctx_)) {
-            return dynamic_cast<T *>(ctx_);
-        } else {
+        if (typeid(T) != typeid(*ctx_)) {
             spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
             return nullptr;
         }
+        return dynamic_cast<T *>(ctx_);
     }
-    template <typename T> void set(T &&t) { ctx_ = new T(std::forward<T>(t)); }
+    template <typename T> void set(T &&t) {
+        if (ctx_ && typeid(T) != typeid(*ctx_)) {
+            spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
+            return;
+        }
+        ctx_ = new T(std::forward<T>(t));
+    }
 
 private:
     Context *ctx_;

@@ -1,5 +1,6 @@
 #include "Epoll.hpp"
 #include "Channel.hpp"
+#include "Utils.hpp"
 
 #include <cerrno>
 #include <spdlog/spdlog.h>
@@ -50,8 +51,7 @@ void Epoll::wait(std::vector<Channel *> &activeChannels, int timeout) {
     } else if (nfds == 0) {
         SPDLOG_TRACE("nothing happened in {} millisecond", timeout);
     } else {
-        spdlog::critical("epoll_wait error");
-        exit(errno);
+        spdlog::critical(true, "epoll_wait error");
     }
 }
 

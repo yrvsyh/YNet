@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Utils.hpp"
+
 #include <sys/epoll.h>
 #include <unordered_set>
 #include <vector>

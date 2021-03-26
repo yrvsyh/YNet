@@ -1,4 +1,5 @@
 #include "WebServer.hpp"
+#include "Utils.hpp"
 
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -132,15 +133,13 @@ void WebServer::replyClient(ConnectionPtr conn) {
         struct stat st;
         std::string resp_header;
         size_t length = 0;
-        if (stat(path.c_str(), &st)) {
-            path = prefix_ + "404.html";
-            if (!stat(path.c_str(), &st)) {
-                length = st.st_size;
-            }
-            response.msg = "HTTP/1.1 404 NOT FOUND";
-        } else {
-            length = st.st_size;
+        auto exist = getFileSize(path.c_str(), length);
+        if (exist) {
             response.msg = "HTTP/1.1 200 OK";
+        } else {
+            path = prefix_ + "404.html";
+            getFileSize(path.c_str(), length);
+            response.msg = "HTTP/1.1 404 NOT FOUND";
         }
         response.headers = fmt::format("\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n", length);
         ::write(conn->getFd(), response.msg.c_str(), response.msg.size());

@@ -23,10 +23,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     pEventLoopInThisThread = this;
 
     int weakupFd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    if (weakupFd < 0) {
-        spdlog::critical("create weakupFd error");
-        exit(errno);
-    }
+    spdlog::critical(weakupFd < 0, "create weakupFd error");
     SPDLOG_DEBUG("weakupFd = {}", weakupFd);
     weakupChannel_.reset(new Channel(this, weakupFd));
     weakupChannel_->onRead([this] {
@@ -39,10 +36,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     ::sigemptyset(&sigmask_);
     ::sigprocmask(SIG_BLOCK, &sigmask_, nullptr);
     int sigFd = ::signalfd(-1, &sigmask_, SFD_NONBLOCK | SFD_CLOEXEC);
-    if (sigFd < 0) {
-        spdlog::critical("create sigFd error");
-        exit(errno);
-    }
+    spdlog::critical(sigFd < 0, "create sigFd error");
     SPDLOG_DEBUG("sigFd = {}", sigFd);
     signalChannel_.reset(new Channel(this, sigFd));
     signalChannel_->onRead([this] {
@@ -54,10 +48,7 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     signalChannel_->enableRead(true);
 
     int timerFd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-    if (timerFd < 0) {
-        spdlog::critical("create timerFd error");
-        exit(errno);
-    }
+    spdlog::critical(timerFd < 0, "create timerFd error");
     SPDLOG_DEBUG("timerFd = {}", timerFd);
     timerChannel_.reset(new Channel(this, timerFd));
     timerChannel_->onRead([this] { onTimer(); });
