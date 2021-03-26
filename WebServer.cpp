@@ -14,7 +14,6 @@ WebServer::WebServer(EventLoop *loop, std::string ip, int port) : loop_(loop), s
 }
 
 void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
-    auto &session = conn->context().get<Session>();
 #ifdef WEB_TEST
     auto pos = buf->search("\r\n\r\n");
     if (pos) {
@@ -25,6 +24,7 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
     }
     return;
 #endif
+    auto &session = *conn->context().get<Session>();
     bool haveMoreline = true;
     while (haveMoreline) {
         switch (session.state) {
@@ -107,7 +107,7 @@ void WebServer::onRequest(ConnectionPtr conn, Buffer *buf) {
 }
 
 void WebServer::replyClient(ConnectionPtr conn) {
-    auto &session = conn->context().get<Session>();
+    auto &session = *conn->context().get<Session>();
     auto &request = session.request;
     Session::Response resp;
     std::swap(session.response, resp);

@@ -4,7 +4,7 @@
 
 #include <string>
 
-struct Session {
+struct Session : AutoContext::Context {
     enum READ_STATE { REQUEST, HEADERS, BODY } state;
     struct Request {
         std::string method;

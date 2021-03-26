@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <spdlog/spdlog.h>
 
 class Connection;
 
@@ -17,38 +18,49 @@ using CloseCallback = std::function<void(ConnectionPtr)>;
 
 class AutoContext {
 public:
-    ~AutoContext() { deleter_(); }
+    struct Context {
+        virtual ~Context() {}
+    };
+    ~AutoContext() { delete ctx_; }
     template <class T>
-    T &get() {
+    T *get() {
         if (!ctx_) {
-            T *t = new T();
-            deleter_ = [t] { delete t; };
-            ctx_ = t;
+            ctx_ = new T();
         }
-        return *reinterpret_cast<T *>(ctx_);
+        if (typeid(T) == typeid(*ctx_)) {
+            return dynamic_cast<T *>(ctx_);
+        } else {
+            spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
+            return nullptr;
+        }
     }
     template <class T>
-    T &get(const T &t) {
+    T *get(const T &t) {
         if (!ctx_) {
-            T *t = new T(t);
-            deleter_ = [t] { delete t; };
-            ctx_ = t;
+            ctx_ = new T(t);
         }
-        return *reinterpret_cast<T *>(ctx_);
+        if (typeid(T) == typeid(*ctx_)) {
+            return dynamic_cast<T *>(ctx_);
+        } else {
+            spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
+            return nullptr;
+        }
     }
     template <class T>
-    T &get(T &&t) {
+    T *get(T &&t) {
         if (!ctx_) {
-            T *t = new T(std::move(t));
-            deleter_ = [t] { delete t; };
-            ctx_ = t;
+            ctx_ = new T(t);
         }
-        return *reinterpret_cast<T *>(ctx_);
+        if (typeid(T) == typeid(*ctx_)) {
+            return dynamic_cast<T *>(ctx_);
+        } else {
+            spdlog::error("context type error: {} != {}(ctx_)", typeid(T).name(), typeid(*ctx_).name());
+            return nullptr;
+        }
     }
 
 private:
-    void *ctx_ = nullptr;
-    std::function<void()> deleter_ = [] {};
+    Context *ctx_;
 };
 
 class Connection : public std::enable_shared_from_this<Connection> {
