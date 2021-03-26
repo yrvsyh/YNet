@@ -9,8 +9,8 @@ set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -O2")
 
-add_compile_options("-fsanitize=address")
-link_libraries("-fsanitize=address")
+# add_compile_options("-fsanitize=address")
+# link_libraries("-fsanitize=address")
 
 add_definitions(-DSPDLOG_FMT_EXTERNAL)
 add_definitions(-DSPDLOG_COMPILED_LIB)

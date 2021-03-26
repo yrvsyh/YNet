@@ -1,10 +1,8 @@
 #include "Epoll.hpp"
 #include "Channel.hpp"
 
-#include <cassert>
 #include <cerrno>
 #include <spdlog/spdlog.h>
-#include <sys/epoll.h>
 #include <unistd.h>
 
 Epoll::Epoll() {
@@ -17,19 +15,16 @@ Epoll::~Epoll() { ::close(epfd_); }
 void Epoll::updateChannel(Channel *channel) {
     SPDLOG_DEBUG("update channel {}", channel->fd());
     if (channel->status() == Channel::kNew) {
-        // assert(channels_.find(channel->fd()) == channels_.cend());
         channels_.insert(channel);
         channel->setStatus(Channel::kAdded);
         update(EPOLL_CTL_ADD, channel);
     } else if (channel->status() == Channel::kAdded) {
-        // assert(channels_.find(channel->fd()) != channels_.cend());
         update(EPOLL_CTL_MOD, channel);
     }
 }
 
 void Epoll::removeChannel(Channel *channel) {
     SPDLOG_DEBUG("remove channel {}", channel->fd());
-    // assert(channels_.find(channel) != channels_.cend());
     if (channel->status() == Channel::kAdded) {
         channels_.erase(channel);
         update(EPOLL_CTL_DEL, channel);

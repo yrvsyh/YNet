@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/epoll.h>
 #include <unordered_set>
 #include <vector>
 
@@ -19,5 +20,5 @@ private:
 private:
     int epfd_;
     std::unordered_set<Channel *> channels_;
-    std::vector<struct epoll_event> events_;
+    std::vector<epoll_event> events_;
 };

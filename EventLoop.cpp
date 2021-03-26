@@ -23,7 +23,10 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     pEventLoopInThisThread = this;
 
     int weakupFd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    assert(weakupFd > 0);
+    if (weakupFd < 0) {
+        spdlog::critical("create weakupFd error");
+        exit(errno);
+    }
     SPDLOG_DEBUG("weakupFd = {}", weakupFd);
     weakupChannel_.reset(new Channel(this, weakupFd));
     weakupChannel_->onRead([this] {
@@ -36,7 +39,10 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     ::sigemptyset(&sigmask_);
     ::sigprocmask(SIG_BLOCK, &sigmask_, nullptr);
     int sigFd = ::signalfd(-1, &sigmask_, SFD_NONBLOCK | SFD_CLOEXEC);
-    assert(sigFd > 0);
+    if (sigFd < 0) {
+        spdlog::critical("create sigFd error");
+        exit(errno);
+    }
     SPDLOG_DEBUG("sigFd = {}", sigFd);
     signalChannel_.reset(new Channel(this, sigFd));
     signalChannel_->onRead([this] {
@@ -47,10 +53,13 @@ EventLoop::EventLoop() : quit_(false), isLooping_(false) {
     });
     signalChannel_->enableRead(true);
 
-    int timerfd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
-    assert(timerfd > 0);
-    SPDLOG_DEBUG("timerfd = {}", timerfd);
-    timerChannel_.reset(new Channel(this, timerfd));
+    int timerFd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
+    if (timerFd < 0) {
+        spdlog::critical("create timerFd error");
+        exit(errno);
+    }
+    SPDLOG_DEBUG("timerFd = {}", timerFd);
+    timerChannel_.reset(new Channel(this, timerFd));
     timerChannel_->onRead([this] { onTimer(); });
     timerChannel_->enableRead(true);
 }
@@ -156,7 +165,6 @@ void EventLoop::onTimer() {
     int ret = timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &its, nullptr);
     if (ret < 0) {
         spdlog::error("set timer error: {}", strerror(errno));
-        assert(Timer(now) < Timer(its));
         timerMap_.clear();
         itimerspec its = {{0, 0}, {0, 0}};
         timerfd_settime(timerChannel_->fd(), TFD_TIMER_ABSTIME, &its, nullptr);
