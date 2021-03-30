@@ -10,6 +10,7 @@ class EventLoop;
 class Channel {
 public:
     using Callback = std::function<void()>;
+    using EventCallback = std::function<void(uint32_t)>;
     enum Status { kNew, kAdded, kDeleted };
 
 public:
@@ -31,6 +32,14 @@ public:
     }
     void handlerEvent();
     void remove();
+    void onEvent(
+        bool set, EventCallback &&cb = [](uint32_t) {}) {
+        if (set) {
+            eventCb_ = std::move(cb);
+        } else {
+            EventCallback().swap(eventCb_);
+        }
+    }
     void onRead(Callback &&cb) { readCb_ = std::move(cb); }
     void onWrite(Callback &&cb) { writeCb_ = std::move(cb); }
     void onError(Callback &&cb) { errorCb_ = std::move(cb); }
@@ -52,6 +61,7 @@ private:
     bool eventHandling_;
     bool addedToLoop_;
 
+    EventCallback eventCb_;
     Callback readCb_ = [this] { SPDLOG_DEBUG("default read callback fd = {}", fd_); };
     Callback writeCb_ = [this] { SPDLOG_DEBUG("default write callback fd = {}", fd_); };
     Callback errorCb_ = [this] { SPDLOG_DEBUG("default error callback fd = {}", fd_); };

@@ -29,7 +29,11 @@ void ThreadPool::stop() {
     SPDLOG_DEBUG("thread poll stoped");
 }
 
-void ThreadPool::run(const std::function<void()> &task) { run(std::move(task)); }
+void ThreadPool::run(const std::function<void()> &task) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    tasks_.push_back(task);
+    empty_.notify_one();
+}
 
 void ThreadPool::run(std::function<void()> &&task) {
     std::unique_lock<std::mutex> lock(mutex_);

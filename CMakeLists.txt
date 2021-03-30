@@ -16,16 +16,11 @@ add_definitions(-DSPDLOG_FMT_EXTERNAL)
 add_definitions(-DSPDLOG_COMPILED_LIB)
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_INFO)
 
-add_library(
-  ynet STATIC
-  Epoll.cpp
-  EventLoop.cpp
-  Channel.cpp
-  ThreadPool.cpp
-  Connection.cpp
-  Server.cpp
-  WebServer.cpp)
+include_directories(include)
+aux_source_directory(src YNET_SRC)
+
+add_library(ynet STATIC ${YNET_SRC})
+target_link_libraries(ynet pthread spdlog fmt)
 
 add_executable(main main.cpp)
-
-target_link_libraries(main ynet pthread spdlog fmt)
+target_link_libraries(main ynet)

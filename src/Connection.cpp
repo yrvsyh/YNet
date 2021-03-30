@@ -11,10 +11,11 @@ Connection::Connection(EventLoop *loop, int fd, EndPoint local, EndPoint peer)
     channel_->onWrite([this] { doWrite(); });
     channel_->onError([this] { doClose(); });
     channel_->onClose([this] { doClose(); });
+    channel_->setEvents((0u - 1) & (EPOLLIN | EPOLLOUT));
 }
 
 Connection::~Connection() {
-    // spdlog::error("Connection[{}] Dtor", fd_);
+    // spdlog::trace("Connection[{}: {}] Dtor", fd_, peer_.toString());
 }
 
 void Connection::shutdown() {

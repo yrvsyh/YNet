@@ -33,10 +33,11 @@ struct Timer {
     itimerspec its;
 };
 
+using Task = std::function<void()>;
+
 class EventLoop {
 public:
     using signalCallback = std::function<void(int)>;
-    using Task = std::function<void()>;
 
     EventLoop();
     ~EventLoop();

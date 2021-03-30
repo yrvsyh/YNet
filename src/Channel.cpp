@@ -20,6 +20,10 @@ void Channel::remove() {
 
 void Channel::handlerEvent() {
     eventHandling_ = true;
+    if (eventCb_) {
+        eventCb_(revents_);
+        return;
+    }
     if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
         closeCb_();
     }

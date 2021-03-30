@@ -50,6 +50,7 @@ public:
     ~Connection();
     void shutdown();
     void close();
+    void write(const std::string data) { write(data.c_str(), data.size()); }
     void write(const char *data, size_t len);
     void onRead(const ReadCallback &cb) { readCallback_ = cb; }
     void onWrite(const WriteCallback &cb) { writeCallback_ = cb; }
