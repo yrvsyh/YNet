@@ -1,9 +1,8 @@
 #pragma once
 
-#include <condition_variable>
-#include <deque>
+#include "ThreadsafeQueue.hpp"
+
 #include <functional>
-#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -24,9 +23,7 @@ private:
     std::function<void()> getTask();
 
 private:
-    std::mutex mutex_;
-    std::condition_variable empty_;
     bool running_;
     std::vector<std::thread> threads_;
-    std::deque<std::function<void()>> tasks_;
+    ThreadsafeQueue<std::function<void()>> tasks_;
 };

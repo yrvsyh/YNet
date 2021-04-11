@@ -21,7 +21,7 @@ void ThreadPool::start(int threadNum) {
 void ThreadPool::stop() {
     SPDLOG_DEBUG("stoping thread poll");
     running_ = false;
-    empty_.notify_all();
+    tasks_.push([] {});
     for (auto &thread : threads_) {
         thread.join();
     }
@@ -29,25 +29,13 @@ void ThreadPool::stop() {
     SPDLOG_DEBUG("thread poll stoped");
 }
 
-void ThreadPool::run(const std::function<void()> &task) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    tasks_.push_back(task);
-    empty_.notify_one();
-}
+void ThreadPool::run(const std::function<void()> &task) { tasks_.push(task); }
 
-void ThreadPool::run(std::function<void()> &&task) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    tasks_.push_back(std::move(task));
-    empty_.notify_one();
-}
+void ThreadPool::run(std::function<void()> &&task) { tasks_.push(std::move(task)); }
 
 std::function<void()> ThreadPool::getTask() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    while (running_ && tasks_.empty()) {
-        empty_.wait(lock);
-    }
+    std::function<void()> task;
+    tasks_.wait_and_pop(task);
     SPDLOG_TRACE("get one task");
-    auto task = tasks_.front();
-    tasks_.pop_front();
     return task;
 }
